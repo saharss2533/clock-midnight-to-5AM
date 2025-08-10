@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Transparent Clock Hand</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: rgba(0,0,0,0); /* fully transparent */
+    }
+    /* Transparent canvas pinned top-left */
+    #hand {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 160px;   /* visual size */
+      height: 160px;
+      background: transparent;
+      pointer-events: none; /* lets clicks pass through */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="hand" width="160" height="160"></canvas>
+
+  <script>
+    const canvas = document.getElementById('hand');
+    const ctx = canvas.getContext('2d');
+
+    // HiDPI crispness
+    function fitForDPR() {
+      const dpr = window.devicePixelRatio || 1;
+      const cssW = canvas.clientWidth;
+      const cssH = canvas.clientHeight;
+      if (canvas.width !== cssW * dpr || canvas.height !== cssH * dpr) {
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+    }
+
+    // Geometry
+    function render(angle) {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      const cx = w / 2, cy = h / 2;
+      const r = Math.min(w, h) * 0.45;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // hand
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#000'; // black hand, visible over most content
+      ctx.stroke();
+
+      // tiny center pin (optional; comment out if you want only the hand)
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+    }
+
+    // Motion: 12 → 5 in 5 minutes
+    const DURATION = 5 * 60 * 1000; // 5 minutes in ms
+    const startAngle = -Math.PI / 2;              // 12 o'clock
+    const endAngle   = startAngle + 5 * (Math.PI / 6); // +5 hours = 150° → 5 o'clock
+
+    let startTime;
+
+    function loop(ts) {
+      if (!startTime) startTime = ts;
+      fitForDPR();
+
+      const t = Math.min((ts - startTime) / DURATION, 1); // 0..1
+      const angle = startAngle + t * (endAngle - startAngle);
+      render(angle);
+
+      if (t < 1) requestAnimationFrame(loop); // stop at 5 o'clock
+    }
+
+    window.addEventListener('resize', fitForDPR);
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
